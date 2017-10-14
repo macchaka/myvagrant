@@ -1,0 +1,8 @@
+---
+httpd_document_root: /vhosts
+mysql_root_password: hogehoge
+
+mailserver: mail.example.com
+mailserver_port: 587
+mailserver_user: hoge@example.com
+mailserver_pw: hogehoge

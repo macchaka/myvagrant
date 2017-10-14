@@ -1,0 +1,39 @@
+---
+- name: install postfix
+  yum: name={{ item }} state=latest
+  with_items:
+    - postfix
+    - cyrus-sasl-plain
+  register: postfix_installed
+- name: modify main.cf file
+  lineinfile: dest=/etc/postfix/main.cf regexp="{{ item.search }}" line="{{ item.value }}"
+  with_items:
+    - { search: '^mynetworks', value: 'mynetworks = 127.0.0.1' }
+    - { search: '^relayhost', value: 'relayhost = [{{ mailserver }}]:{{ mailserver_port }}' }
+    - { search: '^smtp_sasl_auth_enable', value: 'smtp_sasl_auth_enable = yes' }
+    - { search: '^smtp_sasl_password_maps', value: 'smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd' }
+    - { search: '^smtp_sasl_security_options', value: 'smtp_sasl_security_options = noanonymous' }
+    - { search: '^smtp_sasl_mechanism_filter', value: 'smtp_sasl_mechanism_filter = plain' }
+    - { search: '^smtp_use_tls', value: 'smtp_use_tls = yes' }
+  when: postfix_installed | changed
+  notify: restart postfix
+- name: make password file
+  register: postfix_sasl_passwd_result
+  lineinfile: >
+    dest=/home/vagrant/sasl_passwd
+    line='[{{ mailserver }}]:{{ mailserver_port }} {{ mailserver_user }}:{{ mailserver_pw }}'
+    create=yes
+- name: ensure sasl_password is compiled
+  shell: postmap /home/vagrant/sasl_passwd
+  when: postfix_sasl_passwd_result | changed
+  register: sasl_password_compiled
+  notify: restart postfix
+- name: check sasl_password.db is exist
+  stat: path=/home/vagrant/sasl_passwd.db
+  register: is_exists
+  when: sasl_password_compiled | changed
+- name: move sasl_password.db
+  shell: |
+    chown root:wheel /home/vagrant/sasl_passwd.db
+    mv /home/vagrant/sasl_passwd.db /etc/postfix/
+  when: (is_exists | changed) and (is_exists.stat.md5 is defined)

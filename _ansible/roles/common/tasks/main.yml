@@ -1,0 +1,20 @@
+---
+# Repositories
+- name: install python-selinux
+  yum: pkg=libselinux-python state=latest
+- name: disable selinux
+  selinux: state=disabled
+- name: Add repository 'epel-repo'
+  yum: name=epel-release state=present
+- name: install common
+  yum: name={{ item }} state=latest
+  with_items:
+    - git
+    - nmap
+- name: install ruby
+  yum: name={{ item }} state=latest enablerepo=epel
+  with_items:
+    - ruby
+    - ruby-devel
+- name: Set TimeZone in /etc/localtime
+  command: /usr/bin/timedatectl set-timezone Asia/Tokyo

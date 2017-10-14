@@ -1,0 +1,27 @@
+---
+- name: install mariadb
+  yum: name={{ item }} state=latest
+  with_items:
+    - mariadb-server
+    - mariadb-devel
+    - MySQL-python
+- name: start mariadb and enabled
+  service: name=mariadb state=restarted enabled=yes
+- name: deploy .my.cfg file
+  template: src=.my.cnf dest=/root/.my.cnf mode=0600
+- name: update mysql root password for all root accounts
+  become: true
+  mysql_user:
+    name: root
+    host: "{{ item }}"
+    password: "{{ mysql_root_password }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    check_implicit_admin: yes
+    priv: "*.*:ALL,GRANT"
+  with_items:
+    - "{{ ansible_hostname }}"
+    - 127.0.0.1
+    - 192.168.33.1
+    - ::1
+    - localhost

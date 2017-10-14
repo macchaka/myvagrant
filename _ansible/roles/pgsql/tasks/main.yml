@@ -1,0 +1,29 @@
+---
+- name: install PostgreSQL
+  yum: name={{ item }} state=latest
+  with_items:
+    - python-psycopg2
+    - postgresql-server
+    - postgresql
+- name: Initiate database
+  command: service postgresql initdb
+           creates=/var/lib/pgsql/data/postgresql.conf
+- name: start postgresql and enabled
+  service: name=postgresql state=started enabled=yes
+
+- name: Ensure PostgreSQL is listening on all localhost
+  lineinfile: dest=/var/lib/pgsql/data/postgresql.conf
+    regexp='^#?listen_addresses\s*='
+    line="listen_addresses = '*'"
+    state=present
+  notify: restart postgresql
+- lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
+              regexp="{{ item.regexp }}"
+              line="{{ item.line }}"
+              insertbefore=BOF
+  with_items:
+    - { regexp: 'host\s+all\s+all\s+127.0.0.1/32\s+md5', line: "host all all 127.0.0.1/32 md5" }
+    - { regexp: 'host\s+all\s+all\s+0.0.0.0/0\s+trust', line: "host all all 0.0.0.0/0 trust" }
+    - { regexp: 'host\s+all\s+all\s+::1/128\s+md5', line: "host all all ::1/128 md5" }
+
+  notify: restart postgresql

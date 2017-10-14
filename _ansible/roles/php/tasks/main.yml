@@ -1,0 +1,31 @@
+---
+# Repositories
+- name: Add repository 'remi-repo'
+  yum: name=http://rpms.famillecollet.com/enterprise/remi-release-7.rpm state=present
+- name: install php packages
+  yum: name={{ item }} state=latest enablerepo=remi-php56
+  with_items:
+    - php
+    - php-mbstring
+    - php-mysql
+    - php-pgsql
+    - php-pecl-xdebug
+    - php-gd
+    - php-xml
+    - php-intl
+    - php-mcrypt
+    - php-pecl-imagick
+  notify: restart apache
+- name: edit php.ini
+  ini_file: dest=/etc/php.ini section={{ item.section }} option={{ item.option }} value={{ item.value }} mode=0644
+  with_items:
+    - { section: 'PHP', option: 'memory_limit', value: '128M' }
+    - { section: 'PHP', option: 'post_max_size', value: '100M' }
+    - { section: 'PHP', option: 'upload_max_filesize', value: '80M' }
+    - { section: 'Date', option: 'date.timezone', value: 'Asia/Tokyo' }
+
+    - { section: 'xdebug', option: 'xdebug.remote_enable', value: '1' }
+    - { section: 'xdebug', option: 'xdebug.remote_handler', value: 'dbgp' }
+    - { section: 'xdebug', option: 'xdebug.remote_connect_back', value: 'on' }
+
+  notify: restart apache

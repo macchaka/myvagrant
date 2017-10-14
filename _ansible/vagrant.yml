@@ -1,0 +1,11 @@
+---
+- hosts: all
+  connection: local
+  become: yes
+  roles:
+    - common
+    - httpd
+    - php
+    - postfix
+    - mariadb
+    - pgsql
